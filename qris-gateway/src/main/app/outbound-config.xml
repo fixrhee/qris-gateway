@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd">
+
+
+	<flow name="qris-outboundNetworkLogon-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="network/logon" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Logon" />
+		</message-properties-transformer>
+		<request-reply doc:name="Request-Reply" timeout="10000">
+			<vm:outbound-endpoint path="networkRequest"
+				exchange-pattern="one-way">
+				<message-properties-transformer>
+					<delete-message-property key="MULE_REPLYTO" />
+				</message-properties-transformer>
+			</vm:outbound-endpoint>
+			<vm:inbound-endpoint path="networkLogonResponse"
+				exchange-pattern="one-way" />
+		</request-reply>
+		<json:object-to-json-transformer />
+		<logger level="INFO" message="#[payload]" />
+	</flow>
+
+	<flow name="qris-outboundNetworkLogoff-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="network/logoff" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Logoff" />
+		</message-properties-transformer>
+		<request-reply doc:name="Request-Reply" timeout="10000">
+			<vm:outbound-endpoint path="networkRequest"
+				exchange-pattern="one-way">
+				<message-properties-transformer>
+					<delete-message-property key="MULE_REPLYTO" />
+				</message-properties-transformer>
+			</vm:outbound-endpoint>
+			<vm:inbound-endpoint path="networkLogoffResponse"
+				exchange-pattern="one-way" />
+		</request-reply>
+		<json:object-to-json-transformer />
+		<logger level="INFO" message="#[payload]" />
+	</flow>
+
+	<flow name="qris-outboundNetworkCutover-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="network/cutover" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Cutover" />
+		</message-properties-transformer>
+		<request-reply doc:name="Request-Reply" timeout="10000">
+			<vm:outbound-endpoint path="networkRequest"
+				exchange-pattern="one-way">
+				<message-properties-transformer>
+					<delete-message-property key="MULE_REPLYTO" />
+				</message-properties-transformer>
+			</vm:outbound-endpoint>
+			<vm:inbound-endpoint path="networkCutoverResponse"
+				exchange-pattern="one-way" />
+		</request-reply>
+		<json:object-to-json-transformer />
+		<logger level="INFO" message="#[payload]" />
+	</flow>
+
+	<flow name="qris-outboundNetworkEcho-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="network/echo" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Echo" />
+		</message-properties-transformer>
+		<vm:outbound-endpoint path="networkRequest"
+			exchange-pattern="one-way">
+			<message-properties-transformer>
+				<delete-message-property key="MULE_REPLYTO" />
+			</message-properties-transformer>
+		</vm:outbound-endpoint>
+		<set-payload value="ECHO Sent" />
+	</flow>
+
+	<flow name="qris-outboundNetworkProcessor-configFlow">
+		<vm:inbound-endpoint path="networkRequest"
+			exchange-pattern="one-way" />
+		<set-variable variableName="transactionType"
+			value="#[message.inboundProperties.'transactionType']" doc:name="Variable" />
+		<choice>
+			<when expression="#[transactionType == 'Logon']">
+				<invoke object-ref="RequestProcessor" method="sendLogon"
+					methodArguments="#[message.correlationId]" doc:name="Invoke" />
+			</when>
+			<when expression="#[transactionType == 'Logoff']">
+				<invoke object-ref="RequestProcessor" method="sendLogoff"
+					methodArguments="#[message.correlationId]" doc:name="Invoke" />
+			</when>
+			<when expression="#[transactionType == 'Cutover']">
+				<invoke object-ref="RequestProcessor" method="sendCutover"
+					methodArguments="#[message.correlationId]" doc:name="Invoke" />
+			</when>
+			<when expression="#[transactionType == 'Echo']">
+				<invoke object-ref="RequestProcessor" method="sendEcho"
+					methodArguments="#[message.id]" doc:name="Invoke" />
+			</when>
+			<otherwise>
+				<logger level="INFO" message="#[payload]" />
+			</otherwise>
+		</choice>
+	</flow>
+
+
+	<flow name="qris-outboundCredit-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="payment/credit" allowedMethods="POST" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Credit" />
+		</message-properties-transformer>
+		<message-filter onUnaccepted="invalidParameterFlow"
+			doc:name="Message">
+			<and-filter doc:name="And">
+				<expression-filter expression="#[payload['amount'] != null]" />
+				<expression-filter expression="#[payload['amount'] != '']" />
+				<expression-filter expression="#[payload['rrn'] != null]" />
+				<expression-filter expression="#[payload['rrn'] != '']" />
+				<expression-filter expression="#[payload['merchantType'] != null]" />
+				<expression-filter expression="#[payload['merchantType'] != '']" />
+				<expression-filter expression="#[payload['convenienceFee'] != null]" />
+				<expression-filter expression="#[payload['convenienceFee'] != '']" />
+				<expression-filter expression="#[payload['acquiringID'] != null]" />
+				<expression-filter expression="#[payload['acquiringID'] != '']" />
+				<expression-filter expression="#[payload['issuerID'] != null]" />
+				<expression-filter expression="#[payload['issuerID'] != '']" />
+				<expression-filter expression="#[payload['acceptorTID'] != null]" />
+				<expression-filter expression="#[payload['acceptorTID'] != '']" />
+				<expression-filter expression="#[payload['acceptorID'] != null]" />
+				<expression-filter expression="#[payload['acceptorID'] != '']" />
+				<expression-filter expression="#[payload['nationalID'] != null]" />
+				<expression-filter expression="#[payload['nationalID'] != '']" />
+				<expression-filter expression="#[payload['customerPAN'] != null]" />
+				<expression-filter expression="#[payload['customerPAN'] != '']" />
+				<expression-filter expression="#[payload['merchantPAN'] != null]" />
+				<expression-filter expression="#[payload['merchantPAN'] != '']" />
+				<expression-filter expression="#[payload['merchantName'] != null]" />
+				<expression-filter expression="#[payload['merchantName'] != '']" />
+				<expression-filter expression="#[payload['merchantCity'] != null]" />
+				<expression-filter expression="#[payload['merchantCity'] != '']" />
+				<expression-filter expression="#[payload['countryCode'] != null]" />
+				<expression-filter expression="#[payload['countryCode'] != '']" />
+				<expression-filter expression="#[payload['customerName'] != null]" />
+				<expression-filter expression="#[payload['customerName'] != '']" />
+				<expression-filter expression="#[payload['merchantCriteria'] != null]" />
+				<expression-filter expression="#[payload['merchantCriteria'] != '']" />
+				<expression-filter expression="#[payload['postalCode'] != null]" />
+				<expression-filter expression="#[payload['postalCode'] != '']" />
+				<expression-filter expression="#[payload['additionalData'] != null]" />
+				<expression-filter expression="#[payload['additionalData'] != '']" />
+			</and-filter>
+		</message-filter>
+		<request-reply doc:name="Request-Reply" timeout="10000">
+			<vm:outbound-endpoint path="outboundCreditRequest"
+				exchange-pattern="one-way">
+				<message-properties-transformer>
+					<delete-message-property key="MULE_REPLYTO" />
+				</message-properties-transformer>
+			</vm:outbound-endpoint>
+			<vm:inbound-endpoint path="outboundCreditResponse"
+				exchange-pattern="one-way" />
+		</request-reply>
+		<json:object-to-json-transformer />
+	</flow>
+
+	<flow name="qris-outboundInquiryMPAN-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="payment/inquiry" allowedMethods="POST" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Credit" />
+		</message-properties-transformer>
+		<message-filter onUnaccepted="invalidParameterFlow"
+			doc:name="Message">
+			<and-filter doc:name="And">
+				<expression-filter expression="#[payload['amount'] != null]" />
+				<expression-filter expression="#[payload['amount'] != '']" />
+				<expression-filter expression="#[payload['rrn'] != null]" />
+				<expression-filter expression="#[payload['rrn'] != '']" />
+				<expression-filter expression="#[payload['merchantType'] != null]" />
+				<expression-filter expression="#[payload['merchantType'] != '']" />
+				<expression-filter expression="#[payload['convenienceFee'] != null]" />
+				<expression-filter expression="#[payload['convenienceFee'] != '']" />
+				<expression-filter expression="#[payload['acquiringID'] != null]" />
+				<expression-filter expression="#[payload['acquiringID'] != '']" />
+				<expression-filter expression="#[payload['issuerID'] != null]" />
+				<expression-filter expression="#[payload['issuerID'] != '']" />
+				<expression-filter expression="#[payload['acceptorTID'] != null]" />
+				<expression-filter expression="#[payload['acceptorTID'] != '']" />
+				<expression-filter expression="#[payload['acceptorID'] != null]" />
+				<expression-filter expression="#[payload['acceptorID'] != '']" />
+				<expression-filter expression="#[payload['nationalID'] != null]" />
+				<expression-filter expression="#[payload['nationalID'] != '']" />
+				<expression-filter expression="#[payload['customerPAN'] != null]" />
+				<expression-filter expression="#[payload['customerPAN'] != '']" />
+				<expression-filter expression="#[payload['merchantName'] != null]" />
+				<expression-filter expression="#[payload['merchantName'] != '']" />
+				<expression-filter expression="#[payload['merchantCity'] != null]" />
+				<expression-filter expression="#[payload['merchantCity'] != '']" />
+				<expression-filter expression="#[payload['countryCode'] != null]" />
+				<expression-filter expression="#[payload['countryCode'] != '']" />
+				<expression-filter expression="#[payload['customerName'] != null]" />
+				<expression-filter expression="#[payload['customerName'] != '']" />
+				<expression-filter expression="#[payload['merchantCriteria'] != null]" />
+				<expression-filter expression="#[payload['merchantCriteria'] != '']" />
+				<expression-filter expression="#[payload['postalCode'] != null]" />
+				<expression-filter expression="#[payload['postalCode'] != '']" />
+				<expression-filter expression="#[payload['additionalData'] != null]" />
+				<expression-filter expression="#[payload['additionalData'] != '']" />
+			</and-filter>
+		</message-filter>
+		<request-reply doc:name="Request-Reply" timeout="10000">
+			<vm:outbound-endpoint path="outboundInquiryMPANRequest"
+				exchange-pattern="one-way">
+				<message-properties-transformer>
+					<delete-message-property key="MULE_REPLYTO" />
+				</message-properties-transformer>
+			</vm:outbound-endpoint>
+			<vm:inbound-endpoint path="outboundInquiryMPANResponse"
+				exchange-pattern="one-way" />
+		</request-reply>
+		<json:object-to-json-transformer />
+	</flow>
+
+	<flow name="qris-outboundCreditRequest-configFlow">
+		<vm:inbound-endpoint path="outboundCreditRequest"
+			exchange-pattern="one-way" />
+		<set-variable variableName="transactionType"
+			value="#[message.inboundProperties.'transactionType']" doc:name="Variable" />
+		<invoke object-ref="RequestProcessor" method="sendCredit"
+			methodArguments="#[message.correlationId], #[payload['amount']], #[payload['rrn']], #[payload['merchantType']], #[payload['convenienceFee']], #[payload['acquiringID']], #[payload['issuerID']], #[payload['acceptorTID']], #[payload['acceptorID']], #[payload['nationalID']], #[payload['customerPAN']], #[payload['merchantPAN']], #[payload['merchantName']], #[payload['merchantCity']], #[payload['countryCode']], #[payload['customerName']], #[payload['merchantCriteria']], #[payload['postalCode']], #[payload['additionalData']]"
+			doc:name="Invoke" />
+	</flow>
+
+	<flow name="qris-outboundInquiryRequest-configFlow">
+		<vm:inbound-endpoint path="outboundInquiryMPANRequest"
+			exchange-pattern="one-way" />
+		<set-variable variableName="transactionType"
+			value="#[message.inboundProperties.'transactionType']" doc:name="Variable" />
+		<invoke object-ref="RequestProcessor" method="sendInquiryMPAN"
+			methodArguments="#[message.correlationId], #[payload['amount']], #[payload['rrn']], #[payload['merchantType']], #[payload['convenienceFee']], #[payload['acquiringID']], #[payload['issuerID']], #[payload['acceptorTID']], #[payload['acceptorID']], #[payload['nationalID']], #[payload['customerPAN']], #[payload['merchantName']], #[payload['merchantCity']], #[payload['countryCode']], #[payload['customerName']], #[payload['merchantCriteria']], #[payload['postalCode']], #[payload['additionalData']]"
+			doc:name="Invoke" />
+	</flow>
+
+	<flow name="qris-connectorReceiver-configFlow">
+		<vm:inbound-endpoint path="connectorReceiver"
+			exchange-pattern="one-way" />
+		<choice>
+			<when>
+				<or-filter>
+					<expression-filter expression="#[payload[0] == '0210']" />
+					<expression-filter expression="#[payload[0] == '9210']" />
+				</or-filter>
+				<choice>
+					<when
+						expression="#[org.apache.commons.lang3.StringUtils.substring(payload[3],0,2) == '26']">
+						<logger level="INFO" message="[CREDIT Response : #[payload]]" />
+						<choice>
+							<when expression="#[payload[39] == '00']">
+								<invoke object-ref="RequestProcessor" method="deleteCreditCache"
+									methodArguments="#[payload[37]]" doc:name="Invoke" />
+							</when>
+							<otherwise>
+								<vm:outbound-endpoint path="outboundCreditResponse"
+									exchange-pattern="one-way" />
+							</otherwise>
+						</choice>
+						<vm:outbound-endpoint path="outboundCreditResponse"
+							exchange-pattern="one-way" />
+					</when>
+					<when
+						expression="#[org.apache.commons.lang3.StringUtils.substring(payload[3],0,2)  == '36']">
+						<logger level="INFO" message="[CHECK-STATUS Response : #[payload]]" />
+					</when>
+					<when
+						expression="#[org.apache.commons.lang3.StringUtils.substring(payload[3],0,2)  == '20']">
+						<logger level="INFO" message="[REFUND Response : #[payload]]" />
+					</when>
+					<otherwise>
+						<logger level="INFO" message="[INQUIRY-MPAN Response : #[payload]]" />
+						<vm:outbound-endpoint path="outboundInquiryMPANResponse"
+							exchange-pattern="one-way" />
+					</otherwise>
+				</choice>
+			</when>
+			<when expression="#[payload[0] == '0810']">
+				<choice>
+					<when expression="#[payload[70] == '301']">
+						<logger level="INFO" message="[ECHO Response #[payload]]" />
+					</when>
+					<when expression="#[payload[70] == '001']">
+						<logger level="INFO" message="[Logon Response #[payload]]" />
+						<vm:outbound-endpoint path="networkLogonResponse"
+							exchange-pattern="one-way" />
+					</when>
+					<when expression="#[payload[70] == '002']">
+						<logger level="INFO" message="[Logoff Response #[payload]]" />
+						<vm:outbound-endpoint path="networkLogoffResponse"
+							exchange-pattern="one-way" />
+					</when>
+					<otherwise>
+						<logger level="INFO" message="[Cutover Response : #[payload]]" />
+						<vm:outbound-endpoint path="networkCutoverResponse"
+							exchange-pattern="one-way" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise>
+				<choice>
+					<when expression="#[payload[0] == '0800']">
+						<flow-ref name="inbound-networkConfigFlow" />
+					</when>
+					<when expression="#[payload[0] == '0200']">
+						<flow-ref name="inbound-transactionConfigFlow" />
+					</when>
+					<otherwise>
+						<logger level="INFO" message="[UNSUPPORTED MTI : #[payload[0]]]" />
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+	</flow>
+
+	<flow name="invalidParameterFlow">
+		<logger level="INFO" message="INVALID_PARAM" />
+		<set-payload value="INVALID" />
+	</flow>
+
+
+</mule>

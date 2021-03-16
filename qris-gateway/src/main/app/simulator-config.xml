@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd">
+	<spring:beans>
+		<spring:bean id="GWSocketAcceptor"
+			class="com.jpa.qris.gw.channel.DefaultSocketAcceptor" init-method="Initialize"
+			destroy-method="stopServer">
+			<spring:property name="portNumber" value="8989" />
+			<spring:property name="validate" value="false" />
+			<spring:property name="allowedAddresses" value="localhost" />
+			<spring:property name="singleSessionConnection"
+				value="false" />
+			<spring:property name="idle" value="false" />
+			<spring:property name="closeWhenIdle" value="false" />
+			<spring:property name="idleTime" value="10000" />
+			<spring:property name="debugMode" value="false" />
+			<spring:property name="receiver" ref="SocketAcceptorHandler" />
+			<spring:property name="codecFactory" ref="GWProtocolCodecFactory" />
+		</spring:bean>
+
+		<spring:bean id="SocketAcceptorHandler"
+			class="com.jpa.qris.gw.handler.SocketAcceptorHandler">
+			<spring:property name="cache" ref="GWStoreCache" />
+		</spring:bean>
+	</spring:beans>
+
+	<flow name="qris-simulatorEcho-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="simulator/echo" doc:name="HTTP" />
+		<message-properties-transformer>
+			<add-message-property key="transactionType"
+				value="Logon" />
+		</message-properties-transformer>
+		<invoke object-ref="MessageComposer" method="composeEcho"
+			methodArguments="123456" doc:name="Invoke" />
+		<invoke object-ref="SocketAcceptorHandler" method="sendRequest"
+			methodArguments="#[payload]" doc:name="Invoke" />
+	</flow>
+
+	<flow name="qris-simulatorCredit-configFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="simulator/credit" doc:name="HTTP" />
+		<expression-component doc:name="Expression">
+			<![CDATA[
+			payloadMap = new java.util.HashMap();
+			payloadMap['rrn']= '';
+			payloadMap['merchantType']= '';
+			payloadMap['amount']= '';
+			payloadMap['convenienceFee']= '';
+			payloadMap['acquiringID']= '';
+			payloadMap['issuerID']= '';
+			payloadMap['acceptorTID']= '';
+			payloadMap['acceptorID']= '';
+			payloadMap['nationalID']= '';
+			payloadMap['customerPAN']= '';
+			payloadMap['merchantName']= '';
+			payloadMap['merchantCity']= '';
+			payloadMap['countryCode']= '';
+			payloadMap['customerName']= '';
+			payloadMap['merchantCriteria']= '';
+			payloadMap['postalCode']= '';
+			payloadMap['additionalData']= '';
+			payload = payloadMap;]]>
+		</expression-component>
+	</flow>
+
+</mule>

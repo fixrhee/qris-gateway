@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="**/*.java" kind="src" path="src/main/api"/>
+	<classpathentry excluding="**/*.java" kind="src" path="src/main/app"/>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry excluding="**/*.java" kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java"/>
+	<classpathentry excluding="**/*.java" kind="src" output="target/test-classes" path="src/test/resources"/>
+	<classpathentry kind="var" path="M2_REPO/org/bouncycastle/bcpg-jdk15on/1.64/bcpg-jdk15on-1.64.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/bouncycastle/bcprov-jdk15on/1.64/bcprov-jdk15on-1.64.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/apache-extras/beanshell/bsh/2.0b6/bsh-2.0b6.jar"/>
+	<classpathentry kind="var" path="M2_REPO/com/hazelcast/hazelcast/3.8.2/hazelcast-3.8.2.jar"/>
+	<classpathentry kind="var" path="M2_REPO/com/hazelcast/hazelcast-spring/3.8.2/hazelcast-spring-3.8.2.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/hdrhistogram/HdrHistogram/2.1.12/HdrHistogram-2.1.12.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/javassist/javassist/3.26.0-GA/javassist-3.26.0-GA.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/javatuples/javatuples/1.2/javatuples-1.2.jar"/>
+	<classpathentry kind="var" path="M2_REPO/jdbm/jdbm/1.0/jdbm-1.0.jar"/>
+	<classpathentry kind="var" path="M2_REPO/com/sleepycat/je/18.3.12/je-18.3.12.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/jline/jline/3.14.0/jline-3.14.0.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/jpos/jpos/2.1.4/jpos-2.1.4.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/apache/mina/mina-core/2.1.4/mina-core-2.1.4.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/osgi/org.osgi.core/6.0.0/org.osgi.core-6.0.0.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/yaml/snakeyaml/1.26/snakeyaml-1.26.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/apache/sshd/sshd-common/2.4.0/sshd-common-2.4.0.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/apache/sshd/sshd-core/2.4.0/sshd-core-2.4.0.jar"/>
+	<classpathentry kind="con" path="MULE_RUNTIME"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/emv-decoder"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>

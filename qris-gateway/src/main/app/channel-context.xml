@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+
+	<bean id="GWSocketConnector" class="com.jpa.qris.gw.channel.DefaultSocketConnector"
+		depends-on="GWSocketAcceptor" init-method="initConnection"
+		destroy-method="destroy">
+		<constructor-arg index="0" ref="GWProtocolCodecFactory" />
+		<constructor-arg index="1" value="localhost" />
+		<constructor-arg index="2" value="8989" />
+		<constructor-arg index="3" value="false" />
+		<constructor-arg index="4" value="true" />
+		<constructor-arg index="5" value="true" />
+		<constructor-arg index="6" value="60" />
+		<constructor-arg index="7" value="10000" />
+		<constructor-arg index="8" value="10000" />
+		<property name="handlerInterface" ref="SocketConnectorHandler" />
+	</bean>
+
+	<bean id="GWProtocolCodecFactory"
+		class="com.jpa.qris.gw.channel.codec.BinHeaderProtocolCodecFactory" />
+
+	<bean id="GWStoreCache" class="com.jpa.qris.gw.process.SimpleStoreCache" />
+
+	<bean id="SocketConnectorHandler" class="com.jpa.qris.gw.handler.SocketConnectorHandler">
+		<property name="cache" ref="GWStoreCache" />
+		<property name="decomposer" ref="MessageDecomposer" />
+		<property name="requestProcessor" ref="RequestProcessor" />
+	</bean>
+
+	<bean id="MessageComposer" class="com.jpa.qris.gw.process.MessageComposer">
+		<property name="instance" ref="instance" />
+	</bean>
+	<bean id="MessageDecomposer" class="com.jpa.qris.gw.process.MessageDecomposer" />
+
+	<bean id="RequestProcessor" class="com.jpa.qris.gw.process.RequestProcessor">
+		<property name="connector" ref="GWSocketConnector" />
+		<property name="cache" ref="GWStoreCache" />
+		<property name="composer" ref="MessageComposer" />
+	</bean>
+
+</beans>
